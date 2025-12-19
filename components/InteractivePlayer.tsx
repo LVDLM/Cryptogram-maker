@@ -11,6 +11,13 @@ interface InteractivePlayerProps {
   onExit: () => void;
 }
 
+interface PuzzleChar {
+  id: string;
+  original: string;
+  encoded: string;
+  isPuzzle: boolean;
+}
+
 export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, cipherKey, mode, onExit }) => {
   const [guesses, setGuesses] = useState<{ [index: string]: string }>({});
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
@@ -29,7 +36,7 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
   const puzzleData = useMemo(() => {
     let index = 0;
     return text.toUpperCase().split(' ').map((word) => {
-      const chars = word.split('').map((char) => {
+      const chars: PuzzleChar[] = word.split('').map((char) => {
         const id = `char-${index++}`;
         return {
           id,
@@ -96,8 +103,8 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
 
   const getHint = () => {
     if (stats.completed) return;
-    const mistakes = [];
-    const empty = [];
+    const mistakes: PuzzleChar[] = [];
+    const empty: PuzzleChar[] = [];
 
     puzzleData.forEach(word => word.chars.forEach(c => {
       if (!c.isPuzzle) return;
@@ -106,12 +113,11 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
       if (!guess) empty.push(c);
     }));
 
-    let targetChar = null;
+    let targetChar: PuzzleChar | null = null;
     let message = "";
 
     if (mistakes.length > 0) {
-      const randomMistake = mistakes[Math.floor(Math.random() * mistakes.length)];
-      targetChar = randomMistake;
+      targetChar = mistakes[Math.floor(Math.random() * mistakes.length)];
       message = "¡Ups! Corregimos una letra incorrecta.";
     } else if (empty.length > 0) {
       if (selectedCell && !guesses[selectedCell]) {
@@ -129,15 +135,17 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
     if (targetChar) {
       const encodedValue = targetChar.encoded;
       const newGuesses = { ...guesses };
+      const correctLetter = targetChar.original;
+      
       puzzleData.forEach(word => word.chars.forEach(c => {
         if (c.encoded === encodedValue && c.isPuzzle) {
-            newGuesses[c.id] = targetChar.original;
+            newGuesses[c.id] = correctLetter;
         }
       }));
       setGuesses(newGuesses);
       setStats(s => ({ ...s, hintsUsed: s.hintsUsed + 1 }));
       checkCompletion(newGuesses);
-      alert(message + ` El símbolo "${encodedValue}" es la letra "${targetChar.original}".`);
+      alert(message + ` El símbolo "${encodedValue}" es la letra "${correctLetter}".`);
     }
   };
 
@@ -310,7 +318,7 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
         <div className="flex flex-wrap gap-x-6 gap-y-10 leading-loose justify-center">
         {puzzleData.map((word, wIdx) => (
             <div key={wIdx} className="flex flex-wrap gap-1">
-            {word.chars.map((charData, cIdx) => {
+            {word.chars.map((charData) => {
                 const isSelected = selectedCell === charData.id;
                 const hasGuess = !!guesses[charData.id];
                 
