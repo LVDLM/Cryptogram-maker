@@ -1,4 +1,5 @@
-import { ALPHABET_UPPER, ALPHABET_SPANISH, GREEK_ALPHABET, CYRILLIC_ALPHABET, SYMBOLS, COORDINATE_ROWS } from '../constants';
+
+import { ALPHABET_SPANISH, GREEK_ALPHABET, CYRILLIC_ALPHABET, SYMBOLS, COORDINATE_ROWS } from '../constants';
 import { CipherKey, CipherMode } from '../types';
 
 /**
@@ -15,7 +16,7 @@ function shuffleArray<T>(array: T[]): T[] {
 
 export const generateKey = (mode: CipherMode): CipherKey => {
   let targetSet: string[] = [];
-  const baseAlphabet = (mode === 'COORDINATES' || mode === 'COORDINATES_ROWS') ? ALPHABET_SPANISH : ALPHABET_UPPER;
+  const baseAlphabet = ALPHABET_SPANISH;
   const newKey: CipherKey = {};
 
   if (mode === 'COORDINATES') {
@@ -52,19 +53,19 @@ export const generateKey = (mode: CipherMode): CipherKey => {
     // Standard Substitution Logic
     switch (mode) {
       case 'LETTERS':
-        targetSet = shuffleArray([...ALPHABET_UPPER]);
+        targetSet = shuffleArray([...baseAlphabet]);
         break;
       case 'GREEK':
-        targetSet = shuffleArray([...GREEK_ALPHABET]).slice(0, 26);
+        targetSet = shuffleArray([...GREEK_ALPHABET]).slice(0, baseAlphabet.length);
         break;
       case 'CYRILLIC':
-        targetSet = shuffleArray([...CYRILLIC_ALPHABET]).slice(0, 26);
+        targetSet = shuffleArray([...CYRILLIC_ALPHABET]).slice(0, baseAlphabet.length);
         break;
       case 'SYMBOLS':
-        targetSet = shuffleArray([...SYMBOLS]).slice(0, 26);
+        targetSet = shuffleArray([...SYMBOLS]).slice(0, baseAlphabet.length);
         break;
       default:
-        targetSet = shuffleArray([...ALPHABET_UPPER]);
+        targetSet = shuffleArray([...baseAlphabet]);
     }
 
     baseAlphabet.forEach((char, index) => {
@@ -76,17 +77,6 @@ export const generateKey = (mode: CipherMode): CipherKey => {
     });
   }
   
-  // Fallback for missing letters (e.g., standard alphabet vs spanish mismatch)
-  ALPHABET_UPPER.forEach(char => {
-     if (!newKey[char]) {
-         // Try to find a substitute or map to itself if completely broken, 
-         // but usually W or Ñ might be the issue.
-         // In COORDINATES modes we used ALPHABET_SPANISH so it covers standard.
-         // Just in case:
-         newKey[char] = newKey['W'] || char; 
-     }
-  });
-
   return newKey;
 };
 
@@ -100,9 +90,6 @@ export const encodeText = (text: string, key: CipherKey): string => {
     .map((char) => {
       if (key[char]) {
         return key[char]; 
-      }
-      if (ALPHABET_UPPER.includes(char) && key[char]) {
-        return key[char];
       }
       return char;
     })

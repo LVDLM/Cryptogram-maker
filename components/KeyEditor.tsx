@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { ALPHABET_UPPER } from '../constants';
+import { ALPHABET_SPANISH } from '../constants';
 import { CipherKey } from '../types';
 
 interface KeyEditorProps {
@@ -17,7 +18,7 @@ export const KeyEditor: React.FC<KeyEditorProps> = ({ currentKey, onKeyChange })
 
   return (
     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-9 lg:grid-cols-13 gap-2 p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
-      {ALPHABET_UPPER.map((char) => (
+      {ALPHABET_SPANISH.map((char) => (
         <div key={char} className="flex flex-col items-center p-1 bg-slate-50 rounded">
           <span className="text-xs font-bold text-slate-400 mb-1">{char}</span>
           <div className="flex items-center justify-center">

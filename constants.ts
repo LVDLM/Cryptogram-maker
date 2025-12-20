@@ -1,3 +1,4 @@
+
 export const ALPHABET_UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 export const ALPHABET_SPANISH = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ".split(""); // 27 letters for perfect 3x9 grid
 
@@ -7,7 +8,7 @@ export const CYRILLIC_ALPHABET = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХ
 export const SYMBOLS = [
   "★", "☀", "☂", "☁", "☎", "☛", "☮", "☯", "♠", "♣", "♥", "♦", 
   "♪", "♫", "⚓", "⚔", "⚙", "⚛", "⚜", "⚠", "⚡", "❄", "✂", "✎", 
-  "✓", "✕", "✚", "✤", "✦", "✧", "✩", "✪", "✫", "✬", "✭", "✮", "✯"
+  "✓", "✕", "✚", "✤", "✦", "✧", "✩", "✪", "✫", "✬", "✭", "✮", "✯", "✿", "❀", "❃"
 ];
 
 // For the Coordinate Mode (Rows A, B, D to respect "First is A, Last is D")

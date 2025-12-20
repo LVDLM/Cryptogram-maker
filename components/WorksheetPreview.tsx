@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { CipherKey } from '../types';
-import { ALPHABET_UPPER, COORDINATE_ROWS } from '../constants';
+import { ALPHABET_SPANISH, COORDINATE_ROWS } from '../constants';
 
 interface WorksheetPreviewProps {
   text: string;
@@ -113,7 +114,7 @@ export const WorksheetPreview: React.FC<WorksheetPreviewProps> = ({ text, cipher
           </div>
         ) : (
           <div className="flex flex-wrap justify-center gap-2">
-            {ALPHABET_UPPER.map((char) => (
+            {ALPHABET_SPANISH.map((char) => (
               <div key={char} className="flex flex-col items-center border border-slate-300 bg-white w-8 md:w-10">
                 <div className="w-full text-center text-xs md:text-sm text-slate-400 border-b border-slate-200 bg-slate-100 py-1">
                   {char}

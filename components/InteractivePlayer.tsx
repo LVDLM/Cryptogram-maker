@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { CipherKey, CipherMode, PlayerStats } from '../types';
-import { ALPHABET_UPPER, COORDINATE_ROWS } from '../constants';
+import { ALPHABET_SPANISH, COORDINATE_ROWS } from '../constants';
 import { Lightbulb, Trophy, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -292,7 +293,7 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
              ) : (
                 // Substitution Key Grid
                 <div className="flex flex-wrap justify-center gap-2">
-                    {ALPHABET_UPPER.map(char => (
+                    {ALPHABET_SPANISH.map(char => (
                         <div key={char} className="flex flex-col items-center bg-slate-50 p-1.5 rounded border border-slate-100 min-w-[2.5rem]">
                             <span className="text-[10px] text-slate-400 leading-none mb-1">{char}</span>
                             <span className="font-bold text-lg text-indigo-800 leading-none">{cipherKey[char]}</span>
