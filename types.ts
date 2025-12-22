@@ -1,3 +1,4 @@
+
 export type CipherMode = 'LETTERS' | 'GREEK' | 'CYRILLIC' | 'SYMBOLS' | 'COORDINATES' | 'COORDINATES_ROWS';
 
 export interface CipherKey {
@@ -10,6 +11,7 @@ export interface SavedCryptogram {
   originalText: string;
   cipherKey: CipherKey;
   mode: CipherMode;
+  tildeAssistant: boolean;
   createdAt: number;
 }
 

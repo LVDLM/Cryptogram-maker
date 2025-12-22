@@ -2,6 +2,10 @@
 import { ALPHABET_SPANISH, GREEK_ALPHABET, CYRILLIC_ALPHABET, SYMBOLS, COORDINATE_ROWS } from '../constants';
 import { CipherKey, CipherMode } from '../types';
 
+const TILDE_MAP: { [key: string]: string } = {
+  'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U', 'Ü': 'U'
+};
+
 /**
  * Shuffle an array using Fisher-Yates algorithm
  */
@@ -20,7 +24,6 @@ export const generateKey = (mode: CipherMode): CipherKey => {
   const newKey: CipherKey = {};
 
   if (mode === 'COORDINATES') {
-    // Classic 3-row mode (A, B, D x 9 cols)
     const shuffledAlphabet = shuffleArray([...baseAlphabet]);
     let charIndex = 0;
     COORDINATE_ROWS.forEach(rowLabel => {
@@ -33,13 +36,10 @@ export const generateKey = (mode: CipherMode): CipherKey => {
       }
     });
   } else if (mode === 'COORDINATES_ROWS') {
-    // New "Sandwich" mode: 2 Rows (A, D) x 14 Cols = 28 slots (enough for 27 chars)
     const shuffledAlphabet = shuffleArray([...baseAlphabet]);
     let charIndex = 0;
     const rows = ['A', 'D'];
-    
     rows.forEach(rowLabel => {
-      // 14 columns to fit 27 letters in 2 rows
       for (let col = 1; col <= 14; col++) {
         if (charIndex < shuffledAlphabet.length) {
           const letter = shuffledAlphabet[charIndex];
@@ -48,31 +48,18 @@ export const generateKey = (mode: CipherMode): CipherKey => {
         }
       }
     });
-
   } else {
-    // Standard Substitution Logic
     switch (mode) {
-      case 'LETTERS':
-        targetSet = shuffleArray([...baseAlphabet]);
-        break;
-      case 'GREEK':
-        targetSet = shuffleArray([...GREEK_ALPHABET]).slice(0, baseAlphabet.length);
-        break;
-      case 'CYRILLIC':
-        targetSet = shuffleArray([...CYRILLIC_ALPHABET]).slice(0, baseAlphabet.length);
-        break;
-      case 'SYMBOLS':
-        targetSet = shuffleArray([...SYMBOLS]).slice(0, baseAlphabet.length);
-        break;
-      default:
-        targetSet = shuffleArray([...baseAlphabet]);
+      case 'LETTERS': targetSet = shuffleArray([...baseAlphabet]); break;
+      case 'GREEK': targetSet = shuffleArray([...GREEK_ALPHABET]).slice(0, baseAlphabet.length); break;
+      case 'CYRILLIC': targetSet = shuffleArray([...CYRILLIC_ALPHABET]).slice(0, baseAlphabet.length); break;
+      case 'SYMBOLS': targetSet = shuffleArray([...SYMBOLS]).slice(0, baseAlphabet.length); break;
+      default: targetSet = shuffleArray([...baseAlphabet]);
     }
 
     baseAlphabet.forEach((char, index) => {
       if (index < targetSet.length) {
         newKey[char] = targetSet[index];
-      } else {
-        newKey[char] = char;
       }
     });
   }
@@ -80,20 +67,17 @@ export const generateKey = (mode: CipherMode): CipherKey => {
   return newKey;
 };
 
-export const encodeText = (text: string, key: CipherKey): string => {
-  // Determine if we are using extended spanish chars based on key presence
-  const isCoordinate = Object.values(key).some(v => v.length >= 2 && /\d/.test(v));
-  
-  return text
-    .toUpperCase()
-    .split('')
-    .map((char) => {
-      if (key[char]) {
-        return key[char]; 
-      }
-      return char;
-    })
-    .join(isCoordinate ? ' ' : '');
+export const getSymbolForChar = (char: string, key: CipherKey): string => {
+  const upperChar = char.toUpperCase();
+  if (key[upperChar]) return key[upperChar];
+  // Si es una vocal con tilde, buscamos el símbolo de la vocal base
+  const baseChar = TILDE_MAP[upperChar];
+  if (baseChar && key[baseChar]) return key[baseChar];
+  return char;
+};
+
+export const isAccented = (char: string): boolean => {
+  return ['Á', 'É', 'Í', 'Ó', 'Ú', 'Ü'].includes(char.toUpperCase());
 };
 
 export const sanitizeFilename = (text: string): string => {
