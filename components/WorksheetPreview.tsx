@@ -129,23 +129,23 @@ export const WorksheetPreview: React.FC<WorksheetPreviewProps> = ({ text, cipher
       </div>
 
       {/* The Puzzle */}
-      <div className="flex-grow flex flex-col justify-center gap-y-12">
-        <div className="flex flex-wrap gap-x-8 gap-y-8 leading-loose">
+      <div className="flex-grow flex flex-col justify-center py-4">
+        <div className="flex flex-wrap gap-x-12 gap-y-16 leading-relaxed">
           {words.map((word, wIdx) => (
-            <div key={wIdx} className="flex flex-wrap gap-1 md:gap-2">
+            <div key={wIdx} className="flex flex-wrap gap-2 md:gap-3">
               {word.split('').map((char, cIdx) => {
                 const encodedChar = cipherKey[char] || char;
                 const isPuzzlePiece = !!cipherKey[char];
 
                 return (
                   <div key={cIdx} className="flex flex-col items-center">
-                     {/* The Encoded Symbol/Coordinate */}
-                    <div className={`font-bold text-indigo-900 mb-1 h-8 flex items-end justify-center ${isCoordinateMode ? 'text-sm md:text-base w-10 md:w-12' : 'text-2xl md:text-3xl w-8'}`}>
+                     {/* The Encoded Symbol/Coordinate - Higher and centered to avoid overlap */}
+                    <div className={`font-bold text-indigo-900 mb-3 h-10 flex items-center justify-center ${isCoordinateMode ? 'text-sm md:text-base w-10 md:w-12' : 'text-2xl md:text-3xl w-8'}`}>
                       {encodedChar}
                     </div>
                     {/* The Input Box */}
                     {isPuzzlePiece ? (
-                      <div className={`border-2 border-slate-400 rounded-md bg-white ${isCoordinateMode ? 'w-10 h-10 md:w-12 md:h-12' : 'w-8 h-8 md:w-10 md:h-10'}`}></div>
+                      <div className={`border-2 border-slate-400 rounded-md bg-white shadow-sm ${isCoordinateMode ? 'w-10 h-10 md:w-12 md:h-12' : 'w-8 h-8 md:w-10 md:h-10'}`}></div>
                     ) : (
                       <div className={`flex items-center justify-center font-bold text-slate-800 ${isCoordinateMode ? 'w-10 h-10 md:w-12 md:h-12' : 'w-8 h-8 md:w-10 md:h-10'}`}>
                         {char}
@@ -159,8 +159,8 @@ export const WorksheetPreview: React.FC<WorksheetPreviewProps> = ({ text, cipher
         </div>
       </div>
 
-      <div className="mt-8 text-center text-slate-300 text-xs">
-        Generado con NeuroCripto
+      <div className="mt-auto pt-8 text-center text-slate-300 text-xs italic">
+        Generado con NeuroCripto - Herramientas de Apoyo a la Lectoescritura
       </div>
     </div>
   );
