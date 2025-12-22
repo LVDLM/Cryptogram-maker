@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { CipherKey, CipherMode, PlayerStats } from '../types';
 import { ALPHABET_SPANISH, COORDINATE_ROWS } from '../constants';
-import { getSymbolForChar, isAccented } from '../utils/cipherUtils';
-import { Lightbulb, Trophy, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { getSymbolForChar, isAccented, normalizeLetter } from '../utils/cipherUtils';
+import { Lightbulb, Trophy, ChevronDown, ChevronUp, Zap, MousePointer, Play } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface InteractivePlayerProps {
@@ -23,6 +23,8 @@ interface PuzzleChar {
 }
 
 export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, cipherKey, mode, tildeAssistant, onExit }) => {
+  const [gameState, setGameState] = useState<'SETUP' | 'PLAYING'>('SETUP');
+  const [helpMode, setHelpMode] = useState<boolean>(true);
   const [guesses, setGuesses] = useState<{ [index: string]: string }>({});
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
   const [isKeyExpanded, setIsKeyExpanded] = useState(true);
@@ -54,12 +56,12 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
   }, [text, cipherKey]);
 
   useEffect(() => {
-    if (stats.completed) return;
+    if (stats.completed || gameState !== 'PLAYING') return;
     const timer = setInterval(() => {
       setStats(s => ({ ...s, timeSeconds: s.timeSeconds + 1 }));
     }, 1000);
     return () => clearInterval(timer);
-  }, [stats.completed]);
+  }, [stats.completed, gameState]);
 
   const handleInputChange = (id: string, value: string) => {
     if (stats.completed) return;
@@ -73,11 +75,18 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
     if (!charObj) return;
 
     const newGuesses = { ...guesses };
-    puzzleData.forEach(word => word.chars.forEach(c => {
-        if (c.encoded === charObj?.encoded && c.isPuzzle) {
-            newGuesses[c.id] = val;
-        }
-    }));
+    newGuesses[id] = val;
+
+    // Lógica de Ayuda/Autocompletado
+    // Requisito: Si la letra es correcta EXACTAMENTE (incluyendo tilde), se rellenan las demás si hay ayuda.
+    if (helpMode && val === charObj.original) {
+        puzzleData.forEach(word => word.chars.forEach(c => {
+            // Solo propagamos si el carácter original es exactamente el mismo (evita O -> Ó)
+            if (c.original === charObj?.original && c.isPuzzle) {
+                newGuesses[c.id] = val;
+            }
+        }));
+    }
     
     setGuesses(newGuesses);
     checkCompletion(newGuesses);
@@ -113,11 +122,18 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
     if (empty.length > 0) {
       const targetChar = empty[Math.floor(Math.random() * empty.length)];
       const newGuesses = { ...guesses };
-      puzzleData.forEach(word => word.chars.forEach(c => {
-        if (c.encoded === targetChar.encoded && c.isPuzzle) {
-            newGuesses[c.id] = targetChar.original;
-        }
-      }));
+      
+      // La pista siempre es correcta, así que siempre propaga si la ayuda está activa
+      if (helpMode) {
+          puzzleData.forEach(word => word.chars.forEach(c => {
+            if (c.original === targetChar.original && c.isPuzzle) {
+                newGuesses[c.id] = targetChar.original;
+            }
+          }));
+      } else {
+          newGuesses[targetChar.id] = targetChar.original;
+      }
+
       setGuesses(newGuesses);
       setStats(s => ({ ...s, hintsUsed: s.hintsUsed + 1 }));
       checkCompletion(newGuesses);
@@ -128,6 +144,48 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
     const coord = `${row}${col}`;
     return Object.keys(cipherKey).find(key => cipherKey[key] === coord) || "";
   };
+
+  const startGame = (withHelp: boolean) => {
+    setHelpMode(withHelp);
+    setGameState('PLAYING');
+  };
+
+  if (gameState === 'SETUP') {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
+        <div className="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl text-center">
+            <h2 className="text-3xl font-bold text-slate-800 mb-2">Elige tu modo de juego</h2>
+            <p className="text-slate-500 mb-10">¿Quieres que el sistema te ayude a rellenar letras repetidas?</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <button 
+                    onClick={() => startGame(true)}
+                    className="group flex flex-col items-center p-6 border-2 border-indigo-100 rounded-3xl hover:border-indigo-600 hover:bg-indigo-50 transition-all text-left"
+                >
+                    <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <Zap className="w-8 h-8 text-indigo-600" />
+                    </div>
+                    <h4 className="font-bold text-lg text-slate-800 mb-1">Con Ayuda</h4>
+                    <p className="text-xs text-slate-500 text-center">Al escribir una letra correcta, se rellenarán todas las casillas iguales automáticamente.</p>
+                </button>
+
+                <button 
+                    onClick={() => startGame(false)}
+                    className="group flex flex-col items-center p-6 border-2 border-slate-100 rounded-3xl hover:border-slate-800 hover:bg-slate-50 transition-all text-left"
+                >
+                    <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <MousePointer className="w-8 h-8 text-slate-600" />
+                    </div>
+                    <h4 className="font-bold text-lg text-slate-800 mb-1">Sin Ayuda</h4>
+                    <p className="text-xs text-slate-500 text-center">Deberás escribir cada letra manualmente en cada casilla del criptograma.</p>
+                </button>
+            </div>
+
+            <button onClick={onExit} className="mt-10 text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-slate-600 transition-colors">Volver al editor</button>
+        </div>
+      </div>
+    );
+  }
 
   if (stats.completed) {
     return (
@@ -155,7 +213,12 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
     <div className="max-w-6xl mx-auto flex flex-col gap-4 px-2 md:px-4 pb-10">
       <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center sticky top-2 z-30">
         <button onClick={onExit} className="text-slate-500 hover:text-slate-800 text-xs font-bold flex items-center gap-1 uppercase tracking-widest">← SALIR</button>
-        <div className="text-slate-700 font-mono font-bold text-lg">{Math.floor(stats.timeSeconds / 60)}:{(stats.timeSeconds % 60).toString().padStart(2, '0')}</div>
+        <div className="flex items-center gap-4">
+            <div className={`px-2 py-1 rounded text-[10px] font-bold ${helpMode ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                MODO: {helpMode ? 'CON AYUDA' : 'MANUAL'}
+            </div>
+            <div className="text-slate-700 font-mono font-bold text-lg">{Math.floor(stats.timeSeconds / 60)}:{(stats.timeSeconds % 60).toString().padStart(2, '0')}</div>
+        </div>
         <button onClick={getHint} className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors shadow-sm">
             <Lightbulb className="w-4 h-4" />
             <span className="font-bold text-xs uppercase">Pista</span>
@@ -210,7 +273,31 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
             <div key={wIdx} className="flex flex-wrap gap-1">
             {word.chars.map((charData) => {
                 const isSelected = selectedCell === charData.id;
-                const hasGuess = !!guesses[charData.id];
+                const guess = guesses[charData.id];
+                const hasGuess = !!guess;
+                
+                // Lógica de colores de borde refinada
+                let borderColorClass = isSelected ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-300';
+                let textColorClass = 'text-slate-800';
+
+                if (hasGuess) {
+                    const isPerfect = guess === charData.original;
+                    const isBaseMatch = normalizeLetter(guess) === normalizeLetter(charData.original);
+                    
+                    if (isPerfect) {
+                        borderColorClass = 'border-emerald-500';
+                        textColorClass = 'text-emerald-700';
+                    } else if (isBaseMatch) {
+                        // Error de tilde: misma letra base pero distinta tilde -> ROJO
+                        borderColorClass = 'border-red-500 ring-1 ring-red-100';
+                        textColorClass = 'text-red-600';
+                    } else {
+                        // Error general -> Borde normal o gris oscuro para no saturar, o rojo suave
+                        borderColorClass = 'border-red-300';
+                        textColorClass = 'text-slate-400';
+                    }
+                }
+
                 return (
                 <div key={charData.id} className="flex flex-col items-center relative">
                     {tildeAssistant && charData.hasTilde && (
@@ -220,11 +307,11 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
                     {charData.isPuzzle ? (
                         <input
                             type="text"
-                            value={guesses[charData.id] || ''}
+                            value={guess || ''}
                             maxLength={1}
                             onFocus={() => setSelectedCell(charData.id)}
                             onChange={(e) => handleInputChange(charData.id, e.target.value)}
-                            className={`text-center font-bold text-xl uppercase transition-all ${isCoordinateMode ? 'w-10 h-10 md:w-12 md:h-12' : 'w-8 h-8 md:w-10 md:h-10'} border-2 rounded-md outline-none shadow-sm ${isSelected ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-300'} ${hasGuess ? 'bg-slate-50' : 'bg-white'} ${hasGuess && guesses[charData.id] === charData.original ? 'text-emerald-600 border-emerald-200' : 'text-slate-800'}`}
+                            className={`text-center font-bold text-xl uppercase transition-all ${isCoordinateMode ? 'w-10 h-10 md:w-12 md:h-12' : 'w-8 h-8 md:w-10 md:h-10'} border-2 rounded-md outline-none shadow-sm ${borderColorClass} ${hasGuess ? 'bg-slate-50' : 'bg-white'} ${textColorClass}`}
                         />
                     ) : (
                         <div className={`flex items-center justify-center font-bold text-slate-800 ${isCoordinateMode ? 'w-10 h-10 md:w-12 md:h-12' : 'w-8 h-8 md:w-10 md:h-10'}`}>{charData.original}</div>

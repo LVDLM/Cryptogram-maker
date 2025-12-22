@@ -18,6 +18,11 @@ function shuffleArray<T>(array: T[]): T[] {
   return newArray;
 }
 
+export const normalizeLetter = (char: string): string => {
+  const upper = char.toUpperCase();
+  return TILDE_MAP[upper] || upper;
+};
+
 export const generateKey = (mode: CipherMode): CipherKey => {
   let targetSet: string[] = [];
   const baseAlphabet = ALPHABET_SPANISH;
