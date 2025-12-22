@@ -73,13 +73,8 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
     if (!charObj) return;
 
     const newGuesses = { ...guesses };
-    // Rellenamos todas las letras con el mismo símbolo
     puzzleData.forEach(word => word.chars.forEach(c => {
         if (c.encoded === charObj?.encoded && c.isPuzzle) {
-            // Sin embargo, si la letra destino requiere tilde y la actual no (o viceversa),
-            // quizás el alumno quiera poner tildes específicas. 
-            // Para simplificar dislexia: si pone 'A', se pone 'A' en todas. 
-            // Si el asistente está on, le recordamos poner la tilde.
             newGuesses[c.id] = val;
         }
     }));
@@ -120,7 +115,7 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
       const newGuesses = { ...guesses };
       puzzleData.forEach(word => word.chars.forEach(c => {
         if (c.encoded === targetChar.encoded && c.isPuzzle) {
-            newGuesses[c.id] = c.original;
+            newGuesses[c.id] = targetChar.original;
         }
       }));
       setGuesses(newGuesses);
@@ -151,7 +146,7 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
             </div>
         </div>
         <div className="bg-emerald-50 text-emerald-800 p-4 rounded-lg mb-8 text-lg font-medium italic text-center w-full">"{text}"</div>
-        <button onClick={onExit} className="px-8 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors">Volver</button>
+        <button onClick={onExit} className="px-8 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors uppercase text-sm tracking-widest">Volver</button>
       </div>
     );
   }
@@ -159,17 +154,17 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-4 px-2 md:px-4 pb-10">
       <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center sticky top-2 z-30">
-        <button onClick={onExit} className="text-slate-500 hover:text-slate-800 text-sm font-bold flex items-center gap-1">← SALIR</button>
+        <button onClick={onExit} className="text-slate-500 hover:text-slate-800 text-xs font-bold flex items-center gap-1 uppercase tracking-widest">← SALIR</button>
         <div className="text-slate-700 font-mono font-bold text-lg">{Math.floor(stats.timeSeconds / 60)}:{(stats.timeSeconds % 60).toString().padStart(2, '0')}</div>
         <button onClick={getHint} className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors shadow-sm">
             <Lightbulb className="w-4 h-4" />
-            <span className="font-bold text-sm">Pista</span>
+            <span className="font-bold text-xs uppercase">Pista</span>
         </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <button onClick={() => setIsKeyExpanded(!isKeyExpanded)} className="w-full flex justify-between items-center p-3 bg-slate-50 border-b border-slate-100">
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">{isCoordinateMode ? "COORDENADAS" : "CLAVE"}</h3>
+          <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{isCoordinateMode ? "TABLA DE COORDENADAS" : "CLAVE DE SUSTITUCIÓN"}</h3>
           {isKeyExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
         </button>
         {isKeyExpanded && (

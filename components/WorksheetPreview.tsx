@@ -29,8 +29,7 @@ export const WorksheetPreview: React.FC<WorksheetPreviewProps> = ({ text, cipher
   return (
     <div 
       id={id} 
-      className="bg-white p-8 md:p-12 shadow-none w-full max-w-4xl mx-auto flex flex-col font-sans"
-      style={{ minHeight: '297mm' }} // Mínimo una página A4
+      className="bg-white p-8 md:p-12 shadow-none w-full max-w-4xl mx-auto flex flex-col font-sans h-auto"
     >
       <div className="mb-6 border-b-2 border-slate-800 pb-3 flex justify-between items-end">
         <div>
