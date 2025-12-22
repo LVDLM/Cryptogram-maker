@@ -6,9 +6,6 @@ const TILDE_MAP: { [key: string]: string } = {
   'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U', 'Ü': 'U'
 };
 
-/**
- * Shuffle an array using Fisher-Yates algorithm
- */
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -24,7 +21,6 @@ export const normalizeLetter = (char: string): string => {
 };
 
 export const generateKey = (mode: CipherMode): CipherKey => {
-  let targetSet: string[] = [];
   const baseAlphabet = ALPHABET_SPANISH;
   const newKey: CipherKey = {};
 
@@ -53,7 +49,25 @@ export const generateKey = (mode: CipherMode): CipherKey => {
         }
       }
     });
+  } else if (mode === 'SYMBOLS_HARD') {
+    // Modo difícil pedagógico: 
+    // Mezclamos alfabeto y símbolos. Usamos 25 símbolos para 27 letras.
+    // Esto genera 2 colisiones (contextuales).
+    const shuffledSymbols = shuffleArray([...SYMBOLS]).slice(0, 25);
+    const shuffledAlphabet = shuffleArray([...baseAlphabet]);
+    
+    // Las primeras 23 letras tienen símbolos únicos
+    for (let i = 0; i < 23; i++) {
+      newKey[shuffledAlphabet[i]] = shuffledSymbols[i];
+    }
+    // Las últimas 4 letras comparten los últimos 2 símbolos (2 letras por cada símbolo repetido)
+    newKey[shuffledAlphabet[23]] = shuffledSymbols[23];
+    newKey[shuffledAlphabet[24]] = shuffledSymbols[23]; // Colisión 1
+    newKey[shuffledAlphabet[25]] = shuffledSymbols[24];
+    newKey[shuffledAlphabet[26]] = shuffledSymbols[24]; // Colisión 2
+    
   } else {
+    let targetSet: string[] = [];
     switch (mode) {
       case 'LETTERS': targetSet = shuffleArray([...baseAlphabet]); break;
       case 'GREEK': targetSet = shuffleArray([...GREEK_ALPHABET]).slice(0, baseAlphabet.length); break;
@@ -75,7 +89,6 @@ export const generateKey = (mode: CipherMode): CipherKey => {
 export const getSymbolForChar = (char: string, key: CipherKey): string => {
   const upperChar = char.toUpperCase();
   if (key[upperChar]) return key[upperChar];
-  // Si es una vocal con tilde, buscamos el símbolo de la vocal base
   const baseChar = TILDE_MAP[upperChar];
   if (baseChar && key[baseChar]) return key[baseChar];
   return char;

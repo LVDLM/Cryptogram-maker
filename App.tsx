@@ -27,12 +27,12 @@ import { InteractivePlayer } from './components/InteractivePlayer';
 const STORAGE_KEY = 'neurocripto_saved_puzzles_v2';
 const WARNING_KEY = 'neurocripto_storage_warning_seen';
 
-// Mapeo de nombres internos a etiquetas en español
 const MODE_NAMES: Record<CipherMode, string> = {
   'LETTERS': 'LETRAS',
   'GREEK': 'GRIEGO',
   'CYRILLIC': 'CIRÍLICO',
   'SYMBOLS': 'SÍMBOLOS',
+  'SYMBOLS_HARD': 'SÍMB. DIFÍCIL',
   'COORDINATES': 'COORDENADAS',
   'COORDINATES_ROWS': 'FILAS COORD.'
 };
@@ -230,7 +230,7 @@ const App = () => {
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Settings className="w-4 h-4" /> Tipo de Cifrado</h3>
                 <div className="grid grid-cols-2 gap-2 mb-6">
-                  {(['LETTERS', 'SYMBOLS', 'COORDINATES', 'COORDINATES_ROWS'] as CipherMode[]).map((m) => (
+                  {(['LETTERS', 'SYMBOLS', 'SYMBOLS_HARD', 'GREEK', 'COORDINATES', 'COORDINATES_ROWS'] as CipherMode[]).map((m) => (
                     <button key={m} onClick={() => regenerateKey(m)} className={`p-3 rounded-xl border text-[10px] font-bold transition-all ${mode === m ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm' : 'border-slate-100 text-slate-400 hover:border-slate-300'}`}>
                       {MODE_NAMES[m]}
                     </button>

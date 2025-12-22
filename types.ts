@@ -1,5 +1,5 @@
 
-export type CipherMode = 'LETTERS' | 'GREEK' | 'CYRILLIC' | 'SYMBOLS' | 'COORDINATES' | 'COORDINATES_ROWS';
+export type CipherMode = 'LETTERS' | 'GREEK' | 'CYRILLIC' | 'SYMBOLS' | 'SYMBOLS_HARD' | 'COORDINATES' | 'COORDINATES_ROWS';
 
 export interface CipherKey {
   [key: string]: string;

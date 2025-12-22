@@ -78,10 +78,9 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
     newGuesses[id] = val;
 
     // Lógica de Ayuda/Autocompletado
-    // Requisito: Si la letra es correcta EXACTAMENTE (incluyendo tilde), se rellenan las demás si hay ayuda.
+    // Propaga SOLO si el valor es EXACTAMENTE el carácter original (incluyendo tilde)
     if (helpMode && val === charObj.original) {
         puzzleData.forEach(word => word.chars.forEach(c => {
-            // Solo propagamos si el carácter original es exactamente el mismo (evita O -> Ó)
             if (c.original === charObj?.original && c.isPuzzle) {
                 newGuesses[c.id] = val;
             }
@@ -123,7 +122,6 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
       const targetChar = empty[Math.floor(Math.random() * empty.length)];
       const newGuesses = { ...guesses };
       
-      // La pista siempre es correcta, así que siempre propaga si la ayuda está activa
       if (helpMode) {
           puzzleData.forEach(word => word.chars.forEach(c => {
             if (c.original === targetChar.original && c.isPuzzle) {
@@ -166,7 +164,7 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
                         <Zap className="w-8 h-8 text-indigo-600" />
                     </div>
                     <h4 className="font-bold text-lg text-slate-800 mb-1">Con Ayuda</h4>
-                    <p className="text-xs text-slate-500 text-center">Al escribir una letra correcta, se rellenarán todas las casillas iguales automáticamente.</p>
+                    <p className="text-xs text-slate-500 text-center">Al escribir una letra correcta (incluyendo tilde), se rellenarán todas las casillas iguales automáticamente.</p>
                 </button>
 
                 <button 
@@ -177,7 +175,7 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
                         <MousePointer className="w-8 h-8 text-slate-600" />
                     </div>
                     <h4 className="font-bold text-lg text-slate-800 mb-1">Sin Ayuda</h4>
-                    <p className="text-xs text-slate-500 text-center">Deberás escribir cada letra manualmente en cada casilla del criptograma.</p>
+                    <p className="text-xs text-slate-500 text-center">Deberás escribir cada letra manualmente en cada casilla. No se rellenará ninguna letra automáticamente.</p>
                 </button>
             </div>
 
@@ -276,7 +274,6 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
                 const guess = guesses[charData.id];
                 const hasGuess = !!guess;
                 
-                // Lógica de colores de borde refinada
                 let borderColorClass = isSelected ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-300';
                 let textColorClass = 'text-slate-800';
 
@@ -288,11 +285,11 @@ export const InteractivePlayer: React.FC<InteractivePlayerProps> = ({ text, ciph
                         borderColorClass = 'border-emerald-500';
                         textColorClass = 'text-emerald-700';
                     } else if (isBaseMatch) {
-                        // Error de tilde: misma letra base pero distinta tilde -> ROJO
+                        // Letra correcta pero falta/sobra tilde -> ROJO
                         borderColorClass = 'border-red-500 ring-1 ring-red-100';
                         textColorClass = 'text-red-600';
                     } else {
-                        // Error general -> Borde normal o gris oscuro para no saturar, o rojo suave
+                        // Letra totalmente distinta
                         borderColorClass = 'border-red-300';
                         textColorClass = 'text-slate-400';
                     }
