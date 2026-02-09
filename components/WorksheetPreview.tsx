@@ -38,12 +38,13 @@ export const WorksheetPreview: React.FC<WorksheetPreviewProps> = ({
 
   // Parámetros de escalado dinámico optimizados para impresión
   const boxSize = fontSize * 1.6; 
-  const symbolContainerHeight = fontSize * 1.2; // Altura para que el símbolo no se corte
-  const intraCellGap = fontSize * 0.7; // Aumentamos la separación física (era 0.5)
+  const symbolContainerHeight = fontSize * 1.2; 
+  const intraCellGap = fontSize * 0.7; 
   const tildeOffset = fontSize * 0.5;
 
-  // Medida A4 estándar
+  // Medida A4 estándar y límite de seguridad
   const PAGE_HEIGHT_MM = 297;
+  const PAGE_LIMIT_INDICATOR_MM = 287; 
 
   return (
     <div 
@@ -55,14 +56,19 @@ export const WorksheetPreview: React.FC<WorksheetPreviewProps> = ({
         paddingBottom: '40px'
       }}
     >
-      {/* Guía visual de salto de página (No imprimible) */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden select-none no-print" data-html2canvas-ignore="true">
-        <div 
-          className="w-full border-b border-dashed border-slate-200 flex items-center justify-center" 
-          style={{ height: `${PAGE_HEIGHT_MM}mm` }}
-        >
-          <span className="bg-white text-slate-300 text-[7px] px-2 font-mono uppercase tracking-widest">Límite Página 1</span>
+      {/* Guía visual de salto de página (No imprimible) - POSICIONADA EN LA LÍNEA DE CORTE */}
+      <div 
+        className="absolute left-0 w-full flex items-center no-print z-50 pointer-events-none select-none" 
+        style={{ top: `${PAGE_LIMIT_INDICATOR_MM}mm` }}
+        data-html2canvas-ignore="true"
+      >
+        <div className="flex-grow border-t-2 border-dashed border-red-600"></div>
+        <div className="px-4 py-1 bg-white border-2 border-red-600 rounded-full shadow-md mx-2">
+          <span className="text-red-600 text-[10px] font-black uppercase tracking-[0.25em] whitespace-nowrap">
+            Cambio de página
+          </span>
         </div>
+        <div className="flex-grow border-t-2 border-dashed border-red-600"></div>
       </div>
 
       {/* SECCIÓN CABECERA */}
@@ -159,7 +165,7 @@ export const WorksheetPreview: React.FC<WorksheetPreviewProps> = ({
         )}
       </div>
 
-      {/* SECCIÓN CUERPO - Estructura física blindada */}
+      {/* SECCIÓN CUERPO */}
       <div id={`${id}-body`} className="px-10 py-10 bg-white w-full">
         <div 
           className="flex flex-wrap justify-start items-start" 
@@ -205,7 +211,7 @@ export const WorksheetPreview: React.FC<WorksheetPreviewProps> = ({
                       </span>
                     </div>
 
-                    {/* 2. ESPACIADOR FÍSICO (Garantiza el aire entre símbolo y caja) */}
+                    {/* 2. ESPACIADOR FÍSICO */}
                     <div style={{ height: `${intraCellGap}px`, width: '1px' }}></div>
 
                     {/* 3. Contenedor de la Casilla */}
