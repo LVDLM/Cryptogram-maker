@@ -12,6 +12,7 @@ export interface SavedCryptogram {
   cipherKey: CipherKey;
   mode: CipherMode;
   tildeAssistant: boolean;
+  hideKey?: boolean;
   createdAt: number;
 }
 

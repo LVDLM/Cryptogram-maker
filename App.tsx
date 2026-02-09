@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -14,7 +13,9 @@ import {
   PlayCircle,
   AlertTriangle,
   Languages,
-  Loader2
+  Loader2,
+  Sliders,
+  EyeOff
 } from 'lucide-react';
 
 import { CipherKey, CipherMode, SavedCryptogram, ViewState } from './types';
@@ -43,6 +44,9 @@ const App = () => {
   const [mode, setMode] = useState<CipherMode>('SYMBOLS');
   const [cipherKey, setCipherKey] = useState<CipherKey>({});
   const [tildeAssistant, setTildeAssistant] = useState(false);
+  const [hideKey, setHideKey] = useState(false);
+  const [fontSize, setFontSize] = useState(24);
+  const [lineSpacing, setLineSpacing] = useState(60);
   const [savedItems, setSavedItems] = useState<SavedCryptogram[]>([]);
   const [aiTopic, setAiTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -89,33 +93,34 @@ const App = () => {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff',
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight
+        backgroundColor: '#ffffff'
       });
 
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       
-      const canvasWidth = canvas.width;
-      const canvasHeight = canvas.height;
+      const margin = 10; 
+      const contentWidth = pageWidth - (margin * 2);
+      const contentHeight = pageHeight - (margin * 2);
       
-      const ratio = pageWidth / (canvasWidth / 2);
-      const imgHeightOnPdf = (canvasHeight / 2) * ratio;
+      const imgWidth = contentWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
-      let heightLeft = imgHeightOnPdf;
-      let position = 0;
+      let heightLeft = imgHeight;
+      let sourceYOffset = 0; 
       const imgData = canvas.toDataURL('image/png');
 
-      pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeightOnPdf);
-      heightLeft -= pageHeight;
+      // Primera página
+      pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight, undefined, 'FAST');
+      heightLeft -= contentHeight;
 
+      // Páginas adicionales
       while (heightLeft > 0) {
-        position = heightLeft - imgHeightOnPdf;
+        sourceYOffset -= contentHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeightOnPdf);
-        heightLeft -= pageHeight;
+        pdf.addImage(imgData, 'PNG', margin, margin + sourceYOffset, imgWidth, imgHeight, undefined, 'FAST');
+        heightLeft -= contentHeight;
       }
 
       pdf.save(`criptograma_${sanitizeFilename(text)}.pdf`);
@@ -135,6 +140,7 @@ const App = () => {
       cipherKey: { ...cipherKey },
       mode,
       tildeAssistant,
+      hideKey,
       createdAt: Date.now()
     };
     setSavedItems([newItem, ...savedItems]);
@@ -153,6 +159,7 @@ const App = () => {
     setCipherKey(item.cipherKey);
     setMode(item.mode);
     setTildeAssistant(item.tildeAssistant || false);
+    setHideKey(item.hideKey || false);
     setView(ViewState.EDITOR);
   };
 
@@ -200,7 +207,10 @@ const App = () => {
                   <div key={item.id} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start mb-4">
                       <div className="bg-slate-100 text-slate-600 text-[9px] font-bold px-2 py-1 rounded uppercase tracking-tighter">{MODE_NAMES[item.mode]}</div>
-                      {item.tildeAssistant && <div className="bg-indigo-100 text-indigo-700 text-[9px] font-bold px-2 py-1 rounded uppercase">Tildes</div>}
+                      <div className="flex gap-1">
+                        {item.tildeAssistant && <div className="bg-indigo-100 text-indigo-700 text-[9px] font-bold px-2 py-1 rounded uppercase">Tildes</div>}
+                        {item.hideKey && <div className="bg-amber-100 text-amber-700 text-[9px] font-bold px-2 py-1 rounded uppercase">Difícil</div>}
+                      </div>
                     </div>
                     <h3 className="font-bold text-slate-800 mb-2 truncate">{item.title}</h3>
                     <p className="text-slate-400 text-xs mb-6 bg-slate-50 p-3 rounded flex-grow font-mono line-clamp-3">"{item.originalText}"</p>
@@ -218,7 +228,7 @@ const App = () => {
             <div className="lg:col-span-4 space-y-6">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Type className="w-4 h-4" /> Texto del mensaje</h3>
-                <textarea value={text} onChange={(e) => setText(e.target.value)} className="w-full h-32 p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-slate-700" placeholder="Escribe aquí el mensaje a cifrar..." />
+                <textarea value={text} onChange={(e) => setText(e.target.value)} className="w-full h-32 p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-slate-700 font-dyslexia" placeholder="Escribe aquí el mensaje a cifrar..." />
                 <div className="mt-4 pt-4 border-t border-slate-50">
                   <div className="flex gap-2">
                     <input type="text" value={aiTopic} onChange={(e) => setAiTopic(e.target.value)} placeholder="Tema para la IA..." className="flex-grow p-2.5 text-sm border border-slate-200 rounded-lg outline-none focus:border-indigo-500" />
@@ -237,20 +247,70 @@ const App = () => {
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 mb-6">
-                    <div className="flex items-center gap-2">
-                        <Languages className="w-4 h-4 text-indigo-600" />
-                        <span className="text-xs font-bold text-indigo-900">Ayuda con Tildes</span>
-                    </div>
-                    <button 
-                        onClick={() => setTildeAssistant(!tildeAssistant)}
-                        className={`w-10 h-5 rounded-full transition-colors relative ${tildeAssistant ? 'bg-indigo-600' : 'bg-slate-300'}`}
-                    >
-                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${tildeAssistant ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
-                    </button>
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center justify-between p-3 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                      <div className="flex items-center gap-2">
+                          <Languages className="w-4 h-4 text-indigo-600" />
+                          <span className="text-xs font-bold text-indigo-900">Ayuda con Tildes</span>
+                      </div>
+                      <button 
+                          onClick={() => setTildeAssistant(!tildeAssistant)}
+                          className={`w-10 h-5 rounded-full transition-colors relative ${tildeAssistant ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                      >
+                          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${tildeAssistant ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
+                      </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-amber-50/50 rounded-xl border border-amber-100">
+                      <div className="flex items-center gap-2">
+                          <EyeOff className="w-4 h-4 text-amber-600" />
+                          <span className="text-xs font-bold text-amber-900">Ocultar Clave</span>
+                      </div>
+                      <button 
+                          onClick={() => setHideKey(!hideKey)}
+                          className={`w-10 h-5 rounded-full transition-colors relative ${hideKey ? 'bg-amber-600' : 'bg-slate-300'}`}
+                      >
+                          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${hideKey ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
+                      </button>
+                  </div>
                 </div>
 
                 <button onClick={() => regenerateKey(mode)} className="w-full py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-bold transition-colors border border-slate-100 uppercase tracking-wider">Regenerar Clave</button>
+              </div>
+
+              {/* Panel de Ajustes de Diseño */}
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><Sliders className="w-4 h-4" /> Diseño de Página</h3>
+                
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase">Tamaño de Símbolos</label>
+                      <span className="text-xs font-bold text-indigo-600">{fontSize}px</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="16" max="42" step="1" 
+                      value={fontSize} 
+                      onChange={(e) => setFontSize(parseInt(e.target.value))}
+                      className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase">Espaciado entre Líneas</label>
+                      <span className="text-xs font-bold text-indigo-600">{lineSpacing}px</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="20" max="120" step="5" 
+                      value={lineSpacing} 
+                      onChange={(e) => setLineSpacing(parseInt(e.target.value))}
+                      className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -275,12 +335,20 @@ const App = () => {
             <div className="lg:col-span-8">
               <div className="sticky top-24">
                  <div className="bg-slate-800 rounded-t-2xl p-3 text-white px-6 font-bold text-[10px] tracking-widest uppercase flex items-center justify-between">
-                    <span>Previsualización del material</span>
-                    <span className="text-slate-400 lowercase font-normal italic">Se exportará tal como se ve aquí</span>
+                    <span>Previsualización del Documento</span>
+                    <span className="text-slate-400 lowercase font-normal italic">Papel A4 (210 x 297 mm)</span>
                  </div>
-                 <div className="overflow-auto max-h-[calc(100vh-12rem)] rounded-b-2xl border border-t-0 shadow-2xl bg-slate-100 p-6">
-                    <div className="bg-white shadow-sm border border-slate-200 mx-auto max-w-none">
-                       <WorksheetPreview id="worksheet-to-export" text={text} cipherKey={cipherKey} tildeAssistant={tildeAssistant} />
+                 <div className="overflow-auto max-h-[calc(100vh-12rem)] rounded-b-2xl border border-t-0 shadow-2xl bg-slate-200 p-4 md:p-8">
+                    <div className="bg-white shadow-sm border border-slate-300 mx-auto w-fit">
+                       <WorksheetPreview 
+                          id="worksheet-to-export" 
+                          text={text} 
+                          cipherKey={cipherKey} 
+                          tildeAssistant={tildeAssistant} 
+                          fontSize={fontSize}
+                          lineSpacing={lineSpacing}
+                          hideKey={hideKey}
+                       />
                     </div>
                  </div>
               </div>
