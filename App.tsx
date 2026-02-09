@@ -83,50 +83,79 @@ const App = () => {
     setIsGenerating(false);
   };
 
+  /**
+   * PDF Export Logic:
+   * Captura Cabecera, Cuerpo y Pie por separado.
+   * Repite Cabecera y Pie en cada folio.
+   * El cuerpo se captura con su altura real de contenido para evitar páginas vacías.
+   */
   const handleDownloadPDF = async () => {
-    const element = document.getElementById('worksheet-to-export');
-    if (!element) return;
+    const rootId = 'worksheet-to-export';
+    const headerEl = document.getElementById(`${rootId}-header`);
+    const bodyEl = document.getElementById(`${rootId}-body`);
+    const footerEl = document.getElementById(`${rootId}-footer`);
+
+    if (!headerEl || !bodyEl || !footerEl) return;
     
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(element, { 
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
+      const capture = (el: HTMLElement) => html2canvas(el, { 
+          scale: 2, 
+          useCORS: true, 
+          backgroundColor: '#ffffff',
+          width: el.offsetWidth,
+          height: el.scrollHeight, // Usar scrollHeight para capturar solo el contenido real
+          logging: false
       });
 
+      const [headerCanvas, bodyCanvas, footerCanvas] = await Promise.all([
+        capture(headerEl),
+        capture(bodyEl),
+        capture(footerEl)
+      ]);
+
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      
-      const margin = 10; 
-      const contentWidth = pageWidth - (margin * 2);
-      const contentHeight = pageHeight - (margin * 2);
-      
-      const imgWidth = contentWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      let heightLeft = imgHeight;
-      let sourceYOffset = 0; 
-      const imgData = canvas.toDataURL('image/png');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      // Primera página
-      pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight, undefined, 'FAST');
-      heightLeft -= contentHeight;
+      const headerPdfHeight = (headerCanvas.height * pdfWidth) / headerCanvas.width;
+      const footerPdfHeight = (footerCanvas.height * pdfWidth) / footerCanvas.width;
+      const availableBodyHeight = pdfHeight - headerPdfHeight - footerPdfHeight;
 
-      // Páginas adicionales
-      while (heightLeft > 0) {
-        sourceYOffset -= contentHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', margin, margin + sourceYOffset, imgWidth, imgHeight, undefined, 'FAST');
-        heightLeft -= contentHeight;
+      const canvasSliceHeight = (bodyCanvas.width * availableBodyHeight) / pdfWidth;
+
+      let currentY = 0;
+      let pageNum = 0;
+
+      // Solo iniciamos el loop si hay contenido en el cuerpo o es la primera página
+      // El margen de 5px evita generar una página extra por un error de redondeo de píxeles
+      while (currentY < bodyCanvas.height - 5 || pageNum === 0) {
+        if (pageNum > 0) pdf.addPage();
+
+        pdf.addImage(headerCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pdfWidth, headerPdfHeight);
+
+        const sliceH = Math.min(canvasSliceHeight, bodyCanvas.height - currentY);
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = bodyCanvas.width;
+        sliceCanvas.height = sliceH;
+        const ctx = sliceCanvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(bodyCanvas, 0, currentY, bodyCanvas.width, sliceH, 0, 0, sliceCanvas.width, sliceH);
+        }
+
+        const slicePdfH = (sliceH * pdfWidth) / bodyCanvas.width;
+        pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, headerPdfHeight, pdfWidth, slicePdfH);
+
+        pdf.addImage(footerCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, pdfHeight - footerPdfHeight, pdfWidth, footerPdfHeight);
+
+        currentY += canvasSliceHeight;
+        pageNum++;
       }
 
       pdf.save(`criptograma_${sanitizeFilename(text)}.pdf`);
     } catch (err) {
       console.error("Error generating PDF:", err);
-      alert("Hubo un problema al generar el PDF. Inténtalo de nuevo.");
+      alert("Hubo un problema al generar el PDF.");
     } finally {
       setIsExporting(false);
     }
@@ -336,7 +365,7 @@ const App = () => {
               <div className="sticky top-24">
                  <div className="bg-slate-800 rounded-t-2xl p-3 text-white px-6 font-bold text-[10px] tracking-widest uppercase flex items-center justify-between">
                     <span>Previsualización del Documento</span>
-                    <span className="text-slate-400 lowercase font-normal italic">Papel A4 (210 x 297 mm)</span>
+                    <span className="text-slate-400 lowercase font-normal italic">Papel a4 (210 x 297 mm)</span>
                  </div>
                  <div className="overflow-auto max-h-[calc(100vh-12rem)] rounded-b-2xl border border-t-0 shadow-2xl bg-slate-200 p-4 md:p-8">
                     <div className="bg-white shadow-sm border border-slate-300 mx-auto w-fit">
