@@ -255,9 +255,9 @@ const App = () => {
                       </div>
                       <button 
                           onClick={() => setTildeAssistant(!tildeAssistant)}
-                          className={`w-10 h-5 rounded-full transition-colors relative ${tildeAssistant ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                          className={`w-10 h-5 rounded-full transition-all relative outline-none ${tildeAssistant ? 'bg-indigo-600' : 'bg-slate-300'}`}
                       >
-                          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${tildeAssistant ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
+                          <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow-sm ${tildeAssistant ? 'translate-x-5' : 'translate-x-0'}`} />
                       </button>
                   </div>
 
@@ -268,9 +268,9 @@ const App = () => {
                       </div>
                       <button 
                           onClick={() => setHideKey(!hideKey)}
-                          className={`w-10 h-5 rounded-full transition-colors relative ${hideKey ? 'bg-amber-600' : 'bg-slate-300'}`}
+                          className={`w-10 h-5 rounded-full transition-all relative outline-none ${hideKey ? 'bg-amber-600' : 'bg-slate-300'}`}
                       >
-                          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${hideKey ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
+                          <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow-sm ${hideKey ? 'translate-x-5' : 'translate-x-0'}`} />
                       </button>
                   </div>
                 </div>
