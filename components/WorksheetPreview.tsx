@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { CipherKey } from '../types';
 import { ALPHABET_SPANISH, COORDINATE_ROWS } from '../constants';
 import { getSymbolForChar, isAccented } from '../utils/cipherUtils';
@@ -29,60 +29,82 @@ export const WorksheetPreview: React.FC<WorksheetPreviewProps> = ({
   }, 0);
   const isSandwichMode = isCoordinateMode && maxCol > 9;
   
-  const words = text.toUpperCase().trim().split(/\s+/);
+  // Constantes de diseño (en mm para precisión de impresión)
+  const PAGE_WIDTH_MM = 210;
+  const PAGE_LIMIT_MM = 287; // Línea roja
+  const HORIZONTAL_PADDING_MM = 20; // 10mm cada lado (px approx)
+  const AVAILABLE_WIDTH_MM = PAGE_WIDTH_MM - (HORIZONTAL_PADDING_MM);
+
+  // Convertimos unidades de fuente a mm aproximados (1px ≈ 0.264mm)
+  const pxToMm = (px: number) => px * 0.264583;
+  
+  const boxSizeMm = pxToMm(fontSize * 1.6);
+  const charGapMm = pxToMm(fontSize * 0.5);
+  const rowHeightMm = pxToMm(fontSize * 1.2 + fontSize * 0.7 + fontSize * 1.6) + pxToMm(lineSpacing);
+
+  // Estimación de alturas de secciones fijas
+  const headerHeightMm = hideKey ? 35 : (isCoordinateMode ? (isSandwichMode ? 75 : 85) : 75);
+  const footerHeightMm = 20;
+
+  // LÓGICA DE PAGINACIÓN Y LÍNEAS
+  const paginatedLines = useMemo(() => {
+    const words = text.toUpperCase().trim().split(/\s+/);
+    const lines: any[][] = [];
+    let currentLine: any[] = [];
+    let currentLineWidth = 0;
+
+    // 1. Agrupar palabras en líneas físicas basadas en el ancho
+    words.forEach(word => {
+      const wordChars = word.split('');
+      const wordWidth = wordChars.length * boxSizeMm + (wordChars.length - 1) * charGapMm;
+      const spaceWidth = charGapMm * 2; // Espacio entre palabras
+
+      if (currentLineWidth + wordWidth > AVAILABLE_WIDTH_MM && currentLine.length > 0) {
+        lines.push(currentLine);
+        currentLine = [word];
+        currentLineWidth = wordWidth;
+      } else {
+        currentLine.push(word);
+        currentLineWidth += (currentLine.length > 1 ? spaceWidth : 0) + wordWidth;
+      }
+    });
+    if (currentLine.length > 0) lines.push(currentLine);
+
+    // 2. Distribuir líneas en bloques de "página"
+    const pages: any[][] = [[]];
+    let currentY = headerHeightMm;
+
+    lines.forEach(line => {
+      if (currentY + rowHeightMm > PAGE_LIMIT_MM - footerHeightMm) {
+        pages.push([line]);
+        currentY = headerHeightMm + rowHeightMm; // En export PDF el header se repite
+      } else {
+        pages[pages.length - 1].push(line);
+        currentY += rowHeightMm;
+      }
+    });
+
+    return pages;
+  }, [text, fontSize, lineSpacing, isCoordinateMode, isSandwichMode, hideKey]);
 
   const getLetterAtCoordinate = (row: string, col: number) => {
     const coord = `${row}${col}`;
     return Object.keys(cipherKey).find(key => cipherKey[key] === coord) || "";
   };
 
-  // Parámetros de escalado dinámico optimizados para impresión
-  const boxSize = fontSize * 1.6; 
-  const symbolContainerHeight = fontSize * 1.2; 
-  const intraCellGap = fontSize * 0.7; 
-  const tildeOffset = fontSize * 0.5;
-
-  // Medida A4 estándar y límite de seguridad
-  const PAGE_HEIGHT_MM = 297;
-  const PAGE_LIMIT_INDICATOR_MM = 287; 
-
   return (
     <div 
       id={id} 
       className="bg-white shadow-none w-[210mm] mx-auto flex flex-col font-sans relative"
-      style={{ 
-        boxSizing: 'border-box', 
-        minHeight: id === "worksheet-to-export" ? 'auto' : `${PAGE_HEIGHT_MM}mm`,
-        paddingBottom: '40px'
-      }}
+      style={{ boxSizing: 'border-box' }}
     >
-      {/* Guía visual de salto de página (No imprimible) - POSICIONADA EN LA LÍNEA DE CORTE */}
-      <div 
-        className="absolute left-0 w-full flex items-center no-print z-50 pointer-events-none select-none" 
-        style={{ top: `${PAGE_LIMIT_INDICATOR_MM}mm` }}
-        data-html2canvas-ignore="true"
-      >
-        <div className="flex-grow border-t-2 border-dashed border-red-600"></div>
-        <div className="px-4 py-1 bg-white border-2 border-red-600 rounded-full shadow-md mx-2">
-          <span className="text-red-600 text-[10px] font-black uppercase tracking-[0.25em] whitespace-nowrap">
-            Cambio de página
-          </span>
-        </div>
-        <div className="flex-grow border-t-2 border-dashed border-red-600"></div>
-      </div>
-
-      {/* SECCIÓN CABECERA */}
+      {/* SECCIÓN CABECERA (Solo se muestra una vez en la previsualización del editor) */}
       <div id={`${id}-header`} className="p-10 pb-4 bg-white w-full flex-shrink-0">
         <div className="mb-6 border-b-2 border-slate-800 pb-4 flex justify-between items-end">
           <div>
             <h1 className="text-3xl font-bold text-slate-800 tracking-wider uppercase">Criptograma</h1>
-            <p className="text-slate-500 text-[10px] mt-1 font-medium">
-              {hideKey 
-                ? "Desafío experto: Descifra el mensaje oculto sin la clave de ayuda."
-                : (isCoordinateMode 
-                  ? "Localiza las coordenadas en la tabla para descifrar el mensaje secreto." 
-                  : "Utiliza la clave de sustitución para descubrir el mensaje oculto.")
-              }
+            <p className="text-slate-500 text-[10px] mt-1 font-medium italic">
+              Desarrollado para la estimulación cognitiva y lectoescritura.
             </p>
           </div>
           <div className="text-right">
@@ -96,32 +118,31 @@ export const WorksheetPreview: React.FC<WorksheetPreviewProps> = ({
             <h3 className="text-[10px] font-black text-slate-400 uppercase mb-5 text-center tracking-[0.3em]">
               {isCoordinateMode ? "TABLA DE REFERENCIA" : "CLAVE DE SUSTITUCIÓN"}
             </h3>
-            
             <div className="flex justify-center">
               {isCoordinateMode ? (
                 <div className="overflow-x-auto py-1">
                    {isSandwichMode ? (
-                     <div className="min-w-max border-2 border-slate-800 bg-white rounded-sm overflow-hidden">
+                     <div className="min-w-max border-2 border-slate-800 bg-white rounded-sm overflow-hidden scale-90">
                         <div className="flex border-b-2 border-slate-800">
-                           <div className="w-14 h-14 flex items-center justify-center bg-indigo-100 font-bold text-indigo-900 border-r-2 border-slate-800 text-lg">A</div>
+                           <div className="w-12 h-12 flex items-center justify-center bg-indigo-100 font-bold text-indigo-900 border-r-2 border-slate-800 text-lg">A</div>
                            {Array.from({length: 14}, (_, i) => i + 1).map(col => (
-                               <div key={`A${col}`} className="w-11 h-14 flex items-center justify-center border-r border-slate-200 last:border-r-0 text-xl font-bold text-slate-800">
+                               <div key={`A${col}`} className="w-10 h-12 flex items-center justify-center border-r border-slate-200 last:border-r-0 text-lg font-bold text-slate-800">
                                    {getLetterAtCoordinate('A', col)}
                                </div>
                            ))}
                         </div>
                         <div className="flex border-b border-slate-300 bg-slate-100/50">
-                           <div className="w-14 h-6 bg-white border-r-2 border-slate-800"></div>
+                           <div className="w-12 h-5 bg-white border-r-2 border-slate-800"></div>
                            {Array.from({length: 14}, (_, i) => i + 1).map(col => (
-                               <div key={`Num${col}`} className="w-11 h-6 flex items-center justify-center border-r border-slate-200 last:border-r-0 text-[10px] font-black text-slate-400">
+                               <div key={`Num${col}`} className="w-10 h-5 flex items-center justify-center border-r border-slate-200 last:border-r-0 text-[9px] font-black text-slate-400">
                                    {col}
                                </div>
                            ))}
                         </div>
                         <div className="flex">
-                           <div className="w-14 h-14 flex items-center justify-center bg-indigo-100 font-bold text-indigo-900 border-r-2 border-slate-800 text-lg">D</div>
+                           <div className="w-12 h-12 flex items-center justify-center bg-indigo-100 font-bold text-indigo-900 border-r-2 border-slate-800 text-lg">D</div>
                            {Array.from({length: 14}, (_, i) => i + 1).map(col => (
-                               <div key={`D${col}`} className="w-11 h-14 flex items-center justify-center border-r border-slate-200 last:border-r-0 text-xl font-bold text-slate-800">
+                               <div key={`D${col}`} className="w-10 h-12 flex items-center justify-center border-r border-slate-200 last:border-r-0 text-lg font-bold text-slate-800">
                                    {getLetterAtCoordinate('D', col)}
                                </div>
                            ))}
@@ -165,77 +186,76 @@ export const WorksheetPreview: React.FC<WorksheetPreviewProps> = ({
         )}
       </div>
 
-      {/* SECCIÓN CUERPO */}
-      <div id={`${id}-body`} className="px-10 py-10 bg-white w-full">
-        <div 
-          className="flex flex-wrap justify-start items-start" 
-          style={{ 
-            gap: `${lineSpacing}px ${fontSize * 1.2}px`,
-            lineHeight: '1'
-          }}
-        >
-          {words.map((word, wIdx) => (
-            <div key={wIdx} className="flex flex-wrap" style={{ gap: `${fontSize * 0.5}px` }}>
-              {word.split('').map((char, cIdx) => {
-                const encodedChar = getSymbolForChar(char, cipherKey);
-                const isPuzzlePiece = /^[A-ZÑÁÉÍÓÚÜ]$/i.test(char);
-                const hasTilde = isAccented(char);
-
-                return (
-                  <div 
-                    key={cIdx} 
-                    className="flex flex-col items-center relative" 
-                    style={{ 
-                      width: `${boxSize}px`,
-                      boxSizing: 'border-box'
-                    }}
-                  >
-                    {tildeAssistant && hasTilde && (
-                        <div 
-                          className="absolute text-indigo-500 font-bold leading-none select-none z-10 text-center w-full"
-                          style={{ top: `-${tildeOffset}px`, fontSize: `${fontSize * 1.2}px` }}
-                        >´</div>
-                    )}
-                    
-                    {/* 1. Contenedor del Símbolo */}
-                    <div 
-                      className="flex items-center justify-center leading-none overflow-visible"
-                      style={{ 
-                        height: `${symbolContainerHeight}px`, 
-                        width: '100%',
-                        fontSize: isCoordinateMode ? `${fontSize * 0.75}px` : `${fontSize}px`
-                      }}
-                    >
-                      <span className="text-slate-900 font-bold text-center block w-full leading-none">
-                        {encodedChar}
-                      </span>
+      {/* CUERPO PAGINADO */}
+      <div id={`${id}-body`} className="w-full flex flex-col">
+        {paginatedLines.map((pageLines, pIdx) => (
+          <React.Fragment key={`p-${pIdx}`}>
+            {/* Contenedor de líneas para esta página */}
+            <div className="px-10 py-4 flex flex-col" style={{ gap: `${lineSpacing}px` }}>
+              {pageLines.map((line, lIdx) => (
+                <div key={`l-${lIdx}`} className="flex flex-wrap" style={{ gap: `${fontSize * 1.0}px` }}>
+                  {line.map((word: string, wIdx: number) => (
+                    <div key={`word-${wIdx}`} className="flex" style={{ gap: `${fontSize * 0.5}px` }}>
+                      {word.split('').map((char, cIdx) => {
+                        const encodedChar = getSymbolForChar(char, cipherKey);
+                        const isPuzzlePiece = /^[A-ZÑÁÉÍÓÚÜ]$/i.test(char);
+                        const hasTilde = isAccented(char);
+                        
+                        return (
+                          <div 
+                            key={`char-${cIdx}`} 
+                            className="flex flex-col items-center relative" 
+                            style={{ width: `${fontSize * 1.6}px` }}
+                          >
+                            {tildeAssistant && hasTilde && (
+                                <div 
+                                  className="absolute text-indigo-500 font-bold leading-none select-none text-center w-full"
+                                  style={{ top: `-${fontSize * 0.5}px`, fontSize: `${fontSize * 1.2}px` }}
+                                >´</div>
+                            )}
+                            <div 
+                              className="flex items-center justify-center leading-none mb-[16px]"
+                              style={{ height: `${fontSize * 1.2}px`, fontSize: isCoordinateMode ? `${fontSize * 0.75}px` : `${fontSize}px` }}
+                            >
+                              <span className="text-slate-900 font-bold text-center block w-full">{encodedChar}</span>
+                            </div>
+                            {isPuzzlePiece ? (
+                              <div 
+                                className="border-[2.5px] border-slate-300 rounded-2xl bg-white"
+                                style={{ width: `${fontSize * 1.6}px`, height: `${fontSize * 1.6}px` }}
+                              ></div>
+                            ) : (
+                              <div 
+                                className="flex items-center justify-center font-bold text-slate-800"
+                                style={{ width: `${fontSize * 1.6}px`, height: `${fontSize * 1.6}px`, fontSize: `${fontSize}px` }}
+                              >{char}</div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    {/* 2. ESPACIADOR FÍSICO */}
-                    <div style={{ height: `${intraCellGap}px`, width: '1px' }}></div>
-
-                    {/* 3. Contenedor de la Casilla */}
-                    <div className="flex-shrink-0">
-                      {isPuzzlePiece ? (
-                        <div 
-                          className="border-[2.5px] border-slate-300 rounded-2xl bg-white"
-                          style={{ width: `${boxSize}px`, height: `${boxSize}px` }}
-                        ></div>
-                      ) : (
-                        <div 
-                          className="flex items-center justify-center font-bold text-slate-800"
-                          style={{ width: `${boxSize}px`, height: `${boxSize}px`, fontSize: `${fontSize}px` }}
-                        >
-                          {char}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  ))}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+
+            {/* Indicador de cambio de página (No se muestra después de la última página) */}
+            {pIdx < paginatedLines.length - 1 && (
+              <div 
+                className="w-full flex items-center no-print z-50 pointer-events-none select-none my-4" 
+                data-html2canvas-ignore="true"
+              >
+                <div className="flex-grow border-t-2 border-dashed border-red-600"></div>
+                <div className="px-4 py-1 bg-white border-2 border-red-600 rounded-full shadow-md mx-2">
+                  <span className="text-red-600 text-[10px] font-black uppercase tracking-[0.25em] whitespace-nowrap">
+                    Cambio de página
+                  </span>
+                </div>
+                <div className="flex-grow border-t-2 border-dashed border-red-600"></div>
+              </div>
+            )}
+          </React.Fragment>
+        ))}
       </div>
 
       {/* SECCIÓN PIE DE PÁGINA */}
